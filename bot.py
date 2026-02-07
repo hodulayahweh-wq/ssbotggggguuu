@@ -16,6 +16,7 @@ from telegram.ext import (
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
+# Güvenlik
 BANNED_IMPORTS = {
     "os", "sys", "subprocess", "socket",
     "shutil", "threading", "multiprocessing",
@@ -39,20 +40,20 @@ def is_safe(code: str):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📂 Bana .py dosyası gönder\n"
+        "📂 Bana bir .py dosyası gönder\n"
         "• Paketler otomatik kurulur\n"
-        "• Güvensiz kodlar reddedilir\n"
-        "• 10 sn timeout"
+        "• 10 saniye timeout\n"
+        "• Güvensiz kodlar engellenir"
     )
 
 async def handle_py(update: Update, context: ContextTypes.DEFAULT_TYPE):
     doc = update.message.document
-    if not doc.file_name.endswith(".py"):
-        await update.message.reply_text("❌ Sadece .py")
+    if not doc or not doc.file_name.endswith(".py"):
+        await update.message.reply_text("❌ Sadece .py dosyası")
         return
 
     file = await doc.get_file()
-    code = (await file.download_as_bytearray()).decode(errors="ignore")
+    code = (await file.download_as_bytearray()).decode("utf-8", errors="ignore")
 
     ok, msg = is_safe(code)
     if not ok:
@@ -69,20 +70,30 @@ async def handle_py(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             r = subprocess.run(
                 [sys.executable, path],
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
                 timeout=10
             )
-            out = (r.stdout + r.stderr)[:4000] or "Çıktı yok"
+            out = (r.stdout + r.stderr).strip()[:4000] or "Çıktı yok"
             await update.message.reply_text(f"```\n{out}\n```", parse_mode="Markdown")
+
         except subprocess.TimeoutExpired:
             await update.message.reply_text("⏱️ Süre aşıldı (10 sn)")
 
 def main():
+    if not BOT_TOKEN:
+        raise RuntimeError("BOT_TOKEN environment variable yok")
+
     app = Application.builder().token(BOT_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_py))
-    app.run_polling()
+
+    app.run_polling(
+        close_loop=False,
+        allowed_updates=Update.ALL_TYPES
+    )
 
 if __name__ == "__main__":
     main()
