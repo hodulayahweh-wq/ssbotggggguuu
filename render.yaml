@@ -4,12 +4,10 @@ services:
     env: python
     plan: free
 
-    runtime: python
-    pythonVersion: 3.11.9   # 🔥 KRİTİK SATIR
+    pythonVersion: 3.11.9   # 🔥 MUTLAKA
 
     buildCommand: pip install -r requirements.txt
     startCommand: python bot.py
-    autoDeploy: true
 
     envVars:
       - key: BOT_TOKEN
