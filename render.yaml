@@ -3,9 +3,14 @@ services:
     name: py-runner-bot
     env: python
     plan: free
+
+    runtime: python
+    pythonVersion: 3.11.9   # 🔥 KRİTİK SATIR
+
     buildCommand: pip install -r requirements.txt
     startCommand: python bot.py
     autoDeploy: true
+
     envVars:
       - key: BOT_TOKEN
         sync: false
